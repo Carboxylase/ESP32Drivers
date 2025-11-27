@@ -1,4 +1,9 @@
+#ifndef DEBUGTOOLS_H
+#define DEBUGTOOLS_H
+
 #include <stdio.h>
 
-void printMemory(__uint32_t *startAddress,
+void printMemory(volatile __uint8_t *startAddress,
                     __uint32_t numBytes);
+
+#endif

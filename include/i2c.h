@@ -1,8 +1,11 @@
+#ifndef I2C_H
+#define I2C_H
+
 #include <stdio.h>
 
-#define I2C0 0x60013000U
-#define I2C0RxRAMStart I2C0 + 0x100U
-#define I2C0TxRAMStart I2C0 + 0x180U
+#define I2C0 0x60013000UL
+#define I2C0TxRAMStart (I2C0 + 0x100UL)
+#define I2C0RxRAMStart (I2C0 + 0x180UL)
 
 extern __uint32_t I2C0TxRAMStackPointer;
 
@@ -54,14 +57,13 @@ void i2cInit(i2cStructure *i2c,
             __uint8_t firstRxLSB);
 
 void i2cSclCfg(i2cStructure *i2c,
-                    __uint32_t lowLevelCycles,
-                    __uint32_t dataHoldNegClk,
-                    __uint32_t highLevelCycles,
-                    __uint32_t startCLKRiseSDAFall,
-                    __uint32_t stopSetupCycle,
-                    __uint32_t stopHoldClkCycles,
-                    __uint32_t statusFSMTimeout,
-                    __uint32_t mainFSMTimeout);
+                __uint16_t sclLowPeriod,
+                __uint16_t sdaHoldPeriod,
+                __uint16_t sclHighPeriod,
+                __uint8_t sclWaitHighPeriod,
+                __uint16_t sclStartHoldPeriod,
+                __uint8_t statusFSMTimeout,
+                __uint8_t mainFSMTimeout);
 
 void i2cAPBClkCfg(i2cStructure *i2c,
                     __uint8_t useRCFastClk,
@@ -88,3 +90,5 @@ void readRxRAM(i2cStructure *i2c,
 void writeTxRAM(i2cStructure *i2c,
                 __uint32_t numByte,
                 __uint32_t *buffer);
+                
+#endif // I2C_H

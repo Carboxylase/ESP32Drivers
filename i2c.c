@@ -1,4 +1,5 @@
 #include "include/i2c.h"
+#include "include/debugTools.h"
 
 void i2cInit(i2cStructure *i2c, 
             __uint8_t sdaSampleLevel, 
@@ -25,38 +26,61 @@ void i2cInit(i2cStructure *i2c,
 }
 
 void i2cSclCfg(i2cStructure *i2c,
-                __uint32_t lowLevelCycles,
-                __uint32_t dataHoldNegClk,
-                __uint32_t highLevelCycles,
-                __uint32_t startCLKRiseSDAFall,
-                __uint32_t stopSetupCycle,
-                __uint32_t stopHoldClkCycles,
-                __uint32_t statusFSMTimeout,
-                __uint32_t mainFSMTimeout)
+                __uint16_t sclLowPeriod,
+                __uint16_t sdaHoldPeriod,
+                __uint16_t sclHighPeriod,
+                __uint8_t sclWaitHighPeriod,
+                __uint16_t sclStartHoldPeriod,
+                __uint8_t statusFSMTimeout,
+                __uint8_t mainFSMTimeout)
 {
+
+    if (sclLowPeriod > 511)
+    {
+        return;
+    }
+    if (sdaHoldPeriod > 511)
+    {
+        return;
+    }
+    if (sclHighPeriod > 511)
+    {
+
+    }
+    if (sclWaitHighPeriod > 127)
+    {
+        return;
+    }
+    if (sclStartHoldPeriod > 511)
+    {
+        return;
+    }
+    
     // Set low level width
-    i2c->I2C_SCL_LOW_PERIOD_REG = lowLevelCycles;
+    i2c->I2C_SCL_LOW_PERIOD_REG = sclLowPeriod;
 
     // Set how many cycles we hold the SDA line after the CLK falling edge
-    i2c->I2C_SDA_HOLD_REG = dataHoldNegClk;
+    i2c->I2C_SDA_HOLD_REG = sdaHoldPeriod;
 
     // Set high level width
-    i2c->I2C_SCL_HIGH_PERIOD_REG = highLevelCycles;
+    i2c->I2C_SCL_HIGH_PERIOD_REG |= sclHighPeriod << 0;
+
+    i2c->I2C_SCL_HIGH_PERIOD_REG |= sclWaitHighPeriod << 9;
 
     // Set when we sample SDA when CLK is high
-    i2c->I2C_SDA_SAMPLE_REG = highLevelCycles / 2 + 1;
+    i2c->I2C_SDA_SAMPLE_REG = sclHighPeriod / 2 + 1;
 
     // Set the time between the SDA faling edge and CLK falling edge
-    i2c->I2C_SCL_START_HOLD_REG = highLevelCycles - startCLKRiseSDAFall;
+    i2c->I2C_SCL_START_HOLD_REG = sclStartHoldPeriod;
 
     // Set the time between the SCL rising edge to the falling edge of SDA on start up
-    i2c->I2C_SCL_RSTART_SETUP_REG = startCLKRiseSDAFall;
+    // i2c->I2C_SCL_RSTART_SETUP_REG = startCLKRiseSDAFall;
 
     // Set the time between the rising edge of the CLK and the rising edge of SDA for stop
-    i2c->I2C_SCL_STOP_SETUP_REG = stopSetupCycle;
+    // i2c->I2C_SCL_STOP_SETUP_REG = stopSetupCycle;
 
     // Set the time for how long SDA is held after it goes high for stop
-    i2c->I2C_SCL_STOP_HOLD_REG = stopHoldClkCycles;
+    // i2c->I2C_SCL_STOP_HOLD_REG = stopHoldClkCycles;
 
     // Set the status FSM cycle timeout, should not be greater then 23
     if (statusFSMTimeout > 23)
@@ -233,7 +257,7 @@ void readRxRAM(i2cStructure *i2c, __uint32_t numBytes, __uint32_t *buffer)
 
     for (int i = 0; i < numBytes; i++)
     {
-        buffer[i] = *(rxRAM + i*4);
+        buffer[i] = *(rxRAM + i);
     }
 }
 
@@ -246,13 +270,26 @@ void writeTxRAM(i2cStructure *i2c, __uint32_t numByte, __uint32_t *buffer)
         return;
     }
 
-    __uint32_t *txRAM = (__uint32_t*)(i2c + 0x180U);
+    __uint8_t *enableAddr = (__uint8_t*)&(i2c->I2C_FIFO_CONF_REG);
+    printf("enable nonfifo addr: %p\n", (void*)enableAddr);
+    printMemory(enableAddr,4);
+    i2c->I2C_FIFO_CONF_REG |= 1 << 10;
+    printMemory(enableAddr, 4);
+
+    __uint8_t *txRAM = ((__uint8_t*)i2c + 0x100UL);
+
+    printf("Tx Ram Addr: %p\n", (void*)txRAM);
 
     for (int i = 0; i < numByte; i++)
     {
-        *txRAM = buffer[i];
-        txRAM += i*4;
+        *txRAM &= 0;
+        *txRAM |= buffer[i];
+        printf("Tx ram at %p: %X\n", (void*)txRAM,*txRAM); 
+        txRAM += 4;  
     }
+
+    txRAM = (__uint8_t*)(i2c + 0x100UL);
+    printMemory(txRAM, 24);
 
 }
 
