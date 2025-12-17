@@ -55,7 +55,7 @@ void init6050Module(mpu6050Controller *mpu6050Ctrl)
                     nonMaskInterruptEnable);
 
     // enable output via GPIO matrix (gpioIoMuxCfg)
-    __uint8_t pullDownEnableScl = 1;
+    __uint8_t pullDownEnableScl = 0;
     __uint8_t pullUpEnableScl = 0;
     __uint8_t inputEnableScl = 0;
     __uint8_t driveStrengthScl = 1;
@@ -76,7 +76,7 @@ void init6050Module(mpu6050Controller *mpu6050Ctrl)
     //---Setup I2C---//
     
     // General I2C setup
-    __uint8_t sdaSampleLevel = 1;
+    __uint8_t sdaSampleLevel = 0;
     __uint8_t ackLevel = 1;
     __uint8_t isMaster = 1;
     __uint8_t firstTxLSB = 0;
@@ -117,21 +117,105 @@ void init6050Module(mpu6050Controller *mpu6050Ctrl)
                     clkIntegral,
                     clkNumerator,
                     clkDenominator);
+
+    __uint8_t numPulses = 30;
+    sclEnablePulse(mpu6050Ctrl->i2c, numPulses);
 }
 
 void mpu6050Write(mpu6050Controller *mpu6050Ctrl,
                     __uint32_t *buffer,
-                    __uint32_t numBytes)
+                    __uint8_t numBytes)
 {
-    // set the GPIO to be Output (gpioSetOutputPin)
+    // set     i2c->I2C_CTR_REG |= 1 << 5;the GPIO to be Output (gpioSetOutputPin)
+    __uint32_t functionNum = I2CEXT0_SDA;
+    __uint8_t invertOutput = 0;
+    __uint8_t usePeriOutputEnable = 1;
+    __uint8_t invertOutputEnable = 0;
+    gpioSetOutputPin(mpu6050Ctrl->sdaPinNum,
+                        functionNum,
+                        invertOutput,
+                        usePeriOutputEnable,
+                        invertOutputEnable);
 
     // enable output (gpioOutputEnable)
+    gpioOutputEnable(mpu6050Ctrl->sdaPinNum);
+
+    // gpioPinSetting
+    __uint8_t syncPeriClk = 1;
+    __uint8_t syncBusClk = 1;
+    __uint8_t useOpenDrainOutput = 1;
+    __uint8_t interruptType = 0;
+    __uint8_t pinWakeupEnable = 0;
+    __uint8_t cpuInterruptEnable = 0;
+    __uint8_t nonMaskInterruptEnable = 0;
+    gpioPinSettings(mpu6050Ctrl->sdaPinNum,
+                        syncPeriClk,
+                        syncBusClk,
+                        useOpenDrainOutput,
+                        interruptType,
+                        pinWakeupEnable,
+                        cpuInterruptEnable,
+                        nonMaskInterruptEnable);
+
+    // gpioIoMuxCfg
+    __uint8_t pullDownEnable = 0;
+    __uint8_t pullUpEnable = 0;
+    __uint8_t inputEnable = 0;
+    __uint8_t driveStrength = 0;
+    __uint8_t mcuSel = 1;
+    __uint8_t filterEnable = 1;
+    gpioIoMuxCfg(mpu6050Ctrl->sdaPinNum,
+                    pullDownEnable,
+                    pullUpEnable,
+                    inputEnable,
+                    driveStrength,
+                    mcuSel,
+                    filterEnable);
 
     // write to tx buffer
+    writeTxRAM(mpu6050Ctrl->i2c,numBytes,buffer);
 
     // write to commands 
+    //UHHHH idk maybe just set the commands seperately from this function
+    i2cCommands opcode = RSTART;
+    __uint8_t masterReadAckVal = 0;
+    __uint8_t masterWriteAckVal = 0;
+    __uint8_t checkReceivedAckVal = 0;
+    __uint8_t numberBytes = 0;
+    __uint8_t commandNum = 0;
+    setCommand(mpu6050Ctrl->i2c,
+                opcode,
+                masterReadAckVal,
+                masterWriteAckVal,
+                checkReceivedAckVal,
+                numberBytes,
+                commandNum);
 
+    opcode = WRITE;
+    numberBytes = numBytes;
+    commandNum = 1;
+    setCommand(mpu6050Ctrl->i2c,
+                opcode,
+                masterReadAckVal,
+                masterWriteAckVal,
+                checkReceivedAckVal,
+                numberBytes,
+                commandNum);
+
+    opcode = STOP;
+    numberBytes = 0;
+    commandNum = 2;
+    setCommand(mpu6050Ctrl->i2c,
+                opcode,
+                masterReadAckVal,
+                masterWriteAckVal,
+                checkReceivedAckVal,
+                numberBytes,
+                commandNum);
+    
     // set the tx bit
+    mpu6050Ctrl->i2c->I2C_CTR_REG |= 0x1UL << 5;
+
     return;
 
 }

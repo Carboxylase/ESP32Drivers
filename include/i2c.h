@@ -9,6 +9,17 @@
 
 extern __uint32_t I2C0TxRAMStackPointer;
 
+typedef enum 
+{
+    reserved0,
+    WRITE,
+    STOP,
+    READ,
+    END,
+    reserved5,
+    RSTART
+}i2cCommands;
+
 typedef struct
 {
     volatile __uint32_t I2C_SCL_LOW_PERIOD_REG;         // 0x0000
@@ -72,12 +83,12 @@ void i2cAPBClkCfg(i2cStructure *i2c,
                     __uint32_t clkDenominator);
 
 void setCommand(i2cStructure *i2c,
-                    __uint32_t commandNum,
-                    __uint8_t opcode,
-                    __uint8_t ackValue,
-                    __uint8_t ackExp,
-                    __uint8_t ackCheckEn,
-                    __uint8_t numBytes);
+                    i2cCommands opcode,
+                    __uint8_t masterReadAckVal,
+                    __uint8_t masterWriteAckVal,
+                    __uint8_t checkReceivedAckVal,
+                    __uint8_t numBytes,
+                    __uint8_t commandNum);
 
 void i2cClearRxRAM(i2cStructure *i2c);
 
@@ -90,5 +101,7 @@ void readRxRAM(i2cStructure *i2c,
 void writeTxRAM(i2cStructure *i2c,
                 __uint32_t numByte,
                 __uint32_t *buffer);
+
+void sclEnablePulse(i2cStructure *i2c, __uint8_t numPulses);
                 
 #endif // I2C_H

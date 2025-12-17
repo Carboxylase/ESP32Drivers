@@ -1,4 +1,5 @@
 #include "include/i2c.h"
+#include "include/system.h"
 #include "include/debugTools.h"
 
 void i2cInit(i2cStructure *i2c, 
@@ -8,21 +9,42 @@ void i2cInit(i2cStructure *i2c,
             __uint8_t firstTxLSB,
             __uint8_t firstRxLSB)
 {
-    // Reset the configurations
-    i2c->I2C_CTR_REG &= 0;
+    // enable the system clock for I2C
+    volatile __uint32_t *enableClk = (volatile __uint32_t*)SYSTEM_PERIP_CLK_EN0_REG;
+
+    *enableClk |= 1 << 7;
+
+    volatile __uint32_t *clearRst = (volatile __uint32_t*)SYSTEM_PERIP_RST_EN0_REG;
+
+    *clearRst &= ~(1 << 7);
+
+    // reset the register for the I2C config
+    volatile __uint32_t *setReg = (volatile __uint32_t*)&(i2c->I2C_CTR_REG);
+
+    *setReg &= 0;
 
     // Enable the APB clock
-    i2c->I2C_CTR_REG |= 1 << 8;
+    *setReg |= 1 << 8;
     // Set open-drain Rx and Tx (mandatory)
-    i2c->I2C_CTR_REG |= 1 << 0;
-    i2c->I2C_CTR_REG |= 1 << 1;
+    *setReg |= 0 << 0;
+    *setReg |= 0 << 1;
     // Configure everthing else
-    i2c->I2C_CTR_REG |= sdaSampleLevel << 2;
-    i2c->I2C_CTR_REG |= ackLevel << 3;
-    i2c->I2C_CTR_REG |= isMaster << 4;
-    i2c->I2C_CTR_REG |= firstTxLSB << 6;
-    i2c->I2C_CTR_REG |= firstRxLSB << 7;
-    i2c->I2C_CTR_REG |= 1 << 14;
+    *setReg |= sdaSampleLevel << 2;
+    *setReg |= ackLevel << 3;
+    *setReg |= isMaster << 4;
+    *setReg |= firstTxLSB << 6;
+    *setReg |= firstRxLSB << 7;
+
+    // 7-bit address broadcasting enabled
+    *setReg |= 1 << 14;
+
+
+    // reset the SCL state machine
+    // *setReg |= 1 << 10;
+    // *setReg &= ~(1 << 10);
+
+    // synchronize the i2c registers with the two clocks
+    *setReg |= 1 << 11;
 }
 
 void i2cSclCfg(i2cStructure *i2c,
@@ -73,15 +95,6 @@ void i2cSclCfg(i2cStructure *i2c,
     // Set the time between the SDA faling edge and CLK falling edge
     i2c->I2C_SCL_START_HOLD_REG = sclStartHoldPeriod;
 
-    // Set the time between the SCL rising edge to the falling edge of SDA on start up
-    // i2c->I2C_SCL_RSTART_SETUP_REG = startCLKRiseSDAFall;
-
-    // Set the time between the rising edge of the CLK and the rising edge of SDA for stop
-    // i2c->I2C_SCL_STOP_SETUP_REG = stopSetupCycle;
-
-    // Set the time for how long SDA is held after it goes high for stop
-    // i2c->I2C_SCL_STOP_HOLD_REG = stopHoldClkCycles;
-
     // Set the status FSM cycle timeout, should not be greater then 23
     if (statusFSMTimeout > 23)
     {
@@ -101,6 +114,7 @@ void i2cSclCfg(i2cStructure *i2c,
     {
         i2c->I2C_SCL_MAIN_ST_TIME_OUT_REG = mainFSMTimeout;
     }
+    
 }
 
 void i2cAPBClkCfg(i2cStructure *i2c,
@@ -132,7 +146,7 @@ void i2cAPBClkCfg(i2cStructure *i2c,
     }
 
     // Clear the clock config
-    i2c->I2C_CLK_CONF_REG = 0;
+    i2c->I2C_CLK_CONF_REG &= 0;
 
     // Set clock used -> 1 = rc fast clock, 0 = xtal
     if (useRCFastClk)
@@ -150,96 +164,20 @@ void i2cAPBClkCfg(i2cStructure *i2c,
     //
     i2c->I2C_CLK_CONF_REG |= clkIntegral << 0;
 
-    i2c->I2C_CLK_CONF_REG |= clkNumerator << 9;
+    i2c->I2C_CLK_CONF_REG |= clkNumerator << 8;
 
     i2c->I2C_CLK_CONF_REG |= clkDenominator << 14;
 
 
 }
 
-void setCommand(i2cStructure *i2c,
-                    __uint32_t commandNum,
-                    __uint8_t opcode,
-                    __uint8_t ackValue,
-                    __uint8_t ackExp,
-                    __uint8_t ackCheckEn,
-                    __uint8_t numBytes)
-{
-
-    volatile __uint32_t *command;
-    switch(commandNum)
-    {
-        case 0:
-            command = &i2c->I2C_COMD0_REG;
-            break;
-        case 1:
-            command = &i2c->I2C_COMD1_REG;
-            break;
-        case 2:
-            command = &i2c->I2C_COMD2_REG;
-            break;
-        case 3:
-            command = &i2c->I2C_COMD3_REG;
-            break;
-        case 4:
-            command = &i2c->I2C_COMD4_REG;
-            break;
-        case 5:
-            command = &i2c->I2C_COMD5_REG;
-            break;
-        case 6:
-            command = &i2c->I2C_COMD6_REG;
-            break;
-        case 7:
-            command = &i2c->I2C_COMD7_REG;
-            break;
-        default:
-            printf("Invalid command register\n");
-            return;
-    }
-
-    if (ackCheckEn > 1)
-    {
-        printf("The ackCheckEn value is not of bool type: %d", ackCheckEn);
-        return;
-    }
-    if (ackExp > 1)
-    {
-        printf("The ackExp is not a bool value: %d", ackExp);
-        return;
-    }
-    if (ackValue > 1)
-    {
-        printf("The ackValue is not a bool value: %d", ackValue);
-    }
-    if (opcode > 6)
-    {
-        printf("Invalid opcode: %d", opcode);
-    }
-    
-    // BRUH YOU MIGHT WANT TO CHECK IF YOU ARE CLEARING OR SETTING A BIT FUKKKKKKKK
-    
-    // clear the old command
-    *command &= 0;
-
-    *command |= numBytes << 0;
-
-    *command |= ackCheckEn << 8;
-
-    *command |= ackExp << 9;
-
-    *command |= ackValue << 10;
-
-    *command |= opcode << 11;
-}
-
-void i2cClearRxRAM(i2cStructure *i2c)
+void i2cClearRxFIFO(i2cStructure *i2c)
 {
     i2c->I2C_FIFO_CONF_REG |= 1 << 12;
     i2c->I2C_FIFO_CONF_REG &= ~(1 << 12);
 }
 
-void i2cClearTxRAM(i2cStructure *i2c)
+void i2cClearTxFIFO(i2cStructure *i2c)
 {
     i2c->I2C_FIFO_CONF_REG |= 1 << 13;
     i2c->I2C_FIFO_CONF_REG &= ~(1 << 13);
@@ -270,26 +208,119 @@ void writeTxRAM(i2cStructure *i2c, __uint32_t numByte, __uint32_t *buffer)
         return;
     }
 
-    __uint8_t *enableAddr = (__uint8_t*)&(i2c->I2C_FIFO_CONF_REG);
-    printf("enable nonfifo addr: %p\n", (void*)enableAddr);
-    printMemory(enableAddr,4);
+    // Set the Tx RAM into Non-FIFO mode (direct access)
     i2c->I2C_FIFO_CONF_REG |= 1 << 10;
-    printMemory(enableAddr, 4);
 
-    __uint8_t *txRAM = ((__uint8_t*)i2c + 0x100UL);
+    __uint8_t *i2cAddr = (__uint8_t*)i2c;
+    // __uint8_t txRamAddr = i2cAddr + 0x100UL;
 
-    printf("Tx Ram Addr: %p\n", (void*)txRAM);
+    volatile __uint32_t *txRAM = (volatile __uint32_t*)(i2cAddr + 0x100UL);
 
     for (int i = 0; i < numByte; i++)
     {
         *txRAM &= 0;
         *txRAM |= buffer[i];
-        printf("Tx ram at %p: %X\n", (void*)txRAM,*txRAM); 
-        txRAM += 4;  
+        txRAM += 1;  
     }
-
-    txRAM = (__uint8_t*)(i2c + 0x100UL);
-    printMemory(txRAM, 24);
 
 }
 
+void setCommand(i2cStructure *i2c,
+                    i2cCommands opcode,
+                    __uint8_t masterReadAckVal,
+                    __uint8_t masterWriteAckVal,
+                    __uint8_t checkReceivedAckVal,
+                    __uint8_t numBytes,
+                    __uint8_t commandNum)
+{
+    if (opcode > 6)
+    {
+        return;
+    }
+    if (masterReadAckVal > 1)
+    {
+        return;
+    }
+    if (masterWriteAckVal > 1)
+    {
+        return;
+    }
+    if (checkReceivedAckVal > 1)
+    {
+        return;
+    }
+    if (commandNum > 7)
+    {
+        return;
+    }
+
+    volatile __uint32_t *commandReg = NULL; 
+
+    switch (commandNum)
+    {
+        case 0:
+            commandReg = (volatile __uint32_t *)i2c->I2C_COMD0_REG;
+            break;
+
+        case 1:
+            commandReg = (volatile __uint32_t *)i2c->I2C_COMD1_REG;
+            break;
+
+        case 2:
+            commandReg = (volatile __uint32_t *)i2c->I2C_COMD2_REG;
+            break;
+
+        case 3:
+            commandReg = (volatile __uint32_t *)i2c->I2C_COMD3_REG;
+            break;
+        
+        case 4:
+            commandReg = (volatile __uint32_t *)i2c->I2C_COMD4_REG;
+            break;
+
+        case 5:
+            commandReg = (volatile __uint32_t *)i2c->I2C_COMD5_REG;
+            break;
+
+        case 6:
+            commandReg = (volatile __uint32_t *)i2c->I2C_COMD6_REG;
+            break;
+
+        case 7:
+            commandReg = (volatile __uint32_t *)i2c->I2C_COMD7_REG;
+            break;
+
+        // this will also reset the CMD_DONE bit
+        *commandReg &= 0;
+        
+        *commandReg |= numBytes << 0;
+
+        *commandReg |= checkReceivedAckVal << 8;
+
+        *commandReg |= masterWriteAckVal << 9;
+
+        *commandReg |= masterReadAckVal << 10;
+
+        *commandReg |= (__uint8_t)opcode << 11;
+
+    }
+
+    return;
+}
+
+void sclEnablePulse(i2cStructure *i2c, __uint8_t numPulses)
+{
+    if (numPulses > 31)
+    {
+        return;
+    }
+
+    i2c->I2C_SCL_SP_CONF_REG |= 1 << 0;
+    
+    i2c->I2C_SCL_SP_CONF_REG |= numPulses << 1;
+}
+
+void sclDisablePulse(i2cStructure *i2c)
+{
+    return;
+}

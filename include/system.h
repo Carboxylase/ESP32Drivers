@@ -1,0 +1,11 @@
+#ifndef SYSTEM_H
+#define SYSTEM_H
+
+#define SYSTEM_REGISTERS_Base_Address (0x600C0000UL)
+
+#define SYSTEM_PERIP_CLK_EN0_REG (0x0018UL + SYSTEM_REGISTERS_Base_Address)
+
+#define SYSTEM_PERIP_RST_EN0_REG (0x0020UL + SYSTEM_REGISTERS_Base_Address) 
+
+
+#endif

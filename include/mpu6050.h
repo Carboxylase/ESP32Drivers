@@ -27,3 +27,7 @@ typedef struct
 
 void init6050Module(mpu6050Controller *mpu6050Ctrl);
 
+void mpu6050Write(mpu6050Controller *mpu6050Ctrl,
+                    __uint32_t *buffer,
+                    __uint8_t numBytes);
+

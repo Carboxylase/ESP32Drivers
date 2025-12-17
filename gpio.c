@@ -40,10 +40,7 @@ void gpioSetInputPin(__uint32_t pinNum,
 }
 
 void gpioSetOutputPin(__uint32_t pinNum,
-                        __uint32_t functionNum,
-                        __uint8_t invertOutput,
-                        __uint8_t useGpioOutputEnable,
-                        __uint8_t invertOutputEnable)
+                        gpioOutputConfig_t gpioOutputConfig)
 {
     volatile __uint32_t *gpioFuncOutSelCfgReg = (volatile __uint32_t*)(GPIO_FUNC_X_OUT_SELF_CFG_REG_Base_Address + 0x4UL*pinNum);
 
@@ -51,64 +48,22 @@ void gpioSetOutputPin(__uint32_t pinNum,
     {
         return;
     }
-    if (invertOutput > 1)
-    {
-        return;
-    }
-    if (useGpioOutputEnable > 1)
-    {
-        return;
-    }
-    if (invertOutputEnable > 1)
-    {
-        return;
-    }
 
     *gpioFuncOutSelCfgReg &= 0;
 
-    *gpioFuncOutSelCfgReg |= functionNum << 0;
+    *gpioFuncOutSelCfgReg |= gpioOutputConfig.functionNum << 0;
 
-    *gpioFuncOutSelCfgReg |= invertOutput << 9;
+    *gpioFuncOutSelCfgReg |= gpioOutputConfig.invertOutput << 9;
 
-    *gpioFuncOutSelCfgReg |= useGpioOutputEnable << 10;
+    *gpioFuncOutSelCfgReg |= gpioOutputConfig.useGpioOutputEnable << 10;
 
-    *gpioFuncOutSelCfgReg |= invertOutputEnable << 11;
+    *gpioFuncOutSelCfgReg |= gpioOutputConfig.invertOutputEnable << 11;
 }
 
 void gpioPinSettings(__uint32_t pinNum,
-                        __uint8_t syncPeriClk,
-                        __uint8_t syncBusClk,
-                        __uint8_t useOpenDrainOutput,
-                        __uint8_t interruptType,
-                        __uint8_t pinWakeupEnable,
-                        __uint8_t cpuInterruptEnable,
-                        __uint8_t nonMaskInterruptEnable)
+                        gpioPinConfig_t gpioPinConfig)
 {
-    if (syncPeriClk > 3)
-    {
-        return;
-    }
-    if (syncBusClk > 3)
-    {
-        return;
-    }
-    if (useOpenDrainOutput > 1)
-    {
-        return;
-    }
-    if (interruptType > 5)
-    {
-        return;
-    }
-    if (pinWakeupEnable > 1)
-    {
-        return;
-    }
-    if (cpuInterruptEnable > 1)
-    {
-        return;
-    }
-    if (nonMaskInterruptEnable > 1)
+    if (pinNum > 48)
     {
         return;
     }
@@ -119,82 +74,73 @@ void gpioPinSettings(__uint32_t pinNum,
     *gpioSettingsReg &= 0;
 
     // 1 = synchronize input with the APB clk
-    *gpioSettingsReg |= syncBusClk;
+    *gpioSettingsReg |= gpioPinConfig.phase2SyncGpioInputWithApb << 0;
 
     // 1 = use open drain, 0 = use normal
-    *gpioSettingsReg |= useOpenDrainOutput << 2;
+    *gpioSettingsReg |= gpioPinConfig.useOpenDrainOutput << 2;
 
     // 1 = synchonize with peripheral clk
-    *gpioSettingsReg |= syncPeriClk << 3;
+    *gpioSettingsReg |= gpioPinConfig.phase1SyncGpioInputWithApb << 3;
 
     // 0 = no interrupt, 1 = rising edge, 2 = falling edge, 3 = any edge, 4 = low level trigger, 5 = high level trigger
-    *gpioSettingsReg |= interruptType << 7;
+    *gpioSettingsReg |= gpioPinConfig.gpioInterruptType << 7;
 
     // 1 = wakes up CPU from light-sleep
-    *gpioSettingsReg |= pinWakeupEnable << 8;
+    *gpioSettingsReg |= gpioPinConfig.gpioWakeupCpuEnable << 10;
 
     // 1 = cpu interrupt enabled
-    *gpioSettingsReg |= cpuInterruptEnable << 13;
+    *gpioSettingsReg |= gpioPinConfig.gpioCpuInterruptEnabe << 13;
 
     // 1 = cpu non-maskable interrupt enabled
-    *gpioSettingsReg |= nonMaskInterruptEnable << 14;
+    *gpioSettingsReg |= gpioPinConfig.gpioCpuNonMaskInterruptEnable << 14;
 
 }
 
 
 // bruh I don't even care no more -- complete this function later
 void gpioIoMuxCfg(__uint32_t pinNum,
-                    __uint8_t pullDownEnable,
-                    __uint8_t pullUpEnable,
-                    __uint8_t inputEnable,
-                    __uint8_t driveStrength,
-                    __uint8_t mcuSel,
-                    __uint8_t filterEnable)
+                    ioMuxConfig_t ioMuxConfig)
 {
-    if (pullDownEnable > 1)
+    if (ioMuxConfig.sleepGpioDriveStrength > 3)
     {
         return;
     }
-    if (pullUpEnable > 1)
+    if (ioMuxConfig.gpioDriveStrength > 3)
     {
         return;
     }
-    if (inputEnable > 1)
-    {
-        return;
-    }
-    if (driveStrength > 3)
-    {
-        return;
-    }
-    if (mcuSel > 7)
-    {
-        return;
-    }
-    if (filterEnable  > 1)
-    {
-        return;
-    }
-
     if (pinNum > 21 && pinNum < 26)
     {
         return;
     }
-    volatile __uint32_t *gpioIoMuxCfgReg = (volatile __uint32_t*)(GPIO_IO_MUX_N_REG_Base_Address + 0x4U*pinNum);
+    
+    volatile __uint32_t *gpioIoMuxCfgReg = (volatile __uint32_t*)(IO_MUX_N_REG_Base_Address + 0x4U*pinNum);
 
     *gpioIoMuxCfgReg &= 0;
 
-    *gpioIoMuxCfgReg |= pullDownEnable << 7;
+    *gpioIoMuxCfgReg |= ioMuxConfig.sleepOutputEnable << 0;
 
-    *gpioIoMuxCfgReg |= pullUpEnable << 8;
+    *gpioIoMuxCfgReg |= ioMuxConfig.sleepModeEnable << 1;
 
-    *gpioIoMuxCfgReg |= inputEnable << 9;
+    *gpioIoMuxCfgReg |= ioMuxConfig.sleepWeakPullDownEnable << 2;
 
-    *gpioIoMuxCfgReg |= driveStrength << 10;
+    *gpioIoMuxCfgReg |= ioMuxConfig.sleepWeakPullDownEnable << 3;
 
-    *gpioIoMuxCfgReg |= mcuSel << 12;
+    *gpioIoMuxCfgReg |= ioMuxConfig.sleepInputEnable << 4;
 
-    *gpioIoMuxCfgReg |= filterEnable << 15;
+    *gpioIoMuxCfgReg |= ioMuxConfig.sleepGpioDriveStrength << 5;
+
+    *gpioIoMuxCfgReg |= ioMuxConfig.weakPullDownEnable << 7;
+
+    *gpioIoMuxCfgReg |= ioMuxConfig.weakPullUpEnable << 8;
+
+    *gpioIoMuxCfgReg |= ioMuxConfig.inputEnable << 9;
+
+    *gpioIoMuxCfgReg |= ioMuxConfig.gpioDriveStrength << 10;
+
+    *gpioIoMuxCfgReg |= ioMuxConfig.mcuSel << 12;
+
+    *gpioIoMuxCfgReg |= ioMuxConfig.inputFilterEnable << 15;
 }
 
 void gpioClkEnble()
@@ -218,7 +164,16 @@ void gpioOutputEnable(__uint32_t pinNum)
 
     volatile __uint32_t *gpioEnableReg = NULL;
 
-    __uint32_t temp = 0x1UL << pinNum;
+    volatile __uint32_t temp;
+
+    if ( pinNum <= 31)
+    {
+        temp = 0x1UL << pinNum;
+    }
+    else
+    {
+        temp = 0x1UL << (pinNum - 31);
+    }
 
     if (pinNum <= 31)
     {
