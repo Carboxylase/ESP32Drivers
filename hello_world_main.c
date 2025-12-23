@@ -90,56 +90,56 @@ void test_tx_ram()
 
 }
 
-void gpioSetupSCL()
-{
-    //Step 1
-    __uint32_t pinNum = 10;
-    __uint32_t functionNum = I2CEXT0_SCL;
-    __uint8_t invertOutput = 0;
-    __uint8_t useGpioOutputEnable = 1;
-    __uint8_t invertOutputEnable = 0;
-    gpioSetOutputPin(pinNum,
-                        functionNum,
-                        invertOutput,
-                        useGpioOutputEnable,
-                        invertOutputEnable);
+// void gpioSetupSCL()
+// {
+//     //Step 1
+//     __uint32_t pinNum = 10;
+//     __uint32_t functionNum = I2CEXT0_SCL;
+//     __uint8_t invertOutput = 0;
+//     __uint8_t useGpioOutputEnable = 1;
+//     __uint8_t invertOutputEnable = 0;
+//     gpioSetOutputPin(pinNum,
+//                         functionNum,
+//                         invertOutput,
+//                         useGpioOutputEnable,
+//                         invertOutputEnable);
 
-    gpioOutputEnable(pinNum);
+//     gpioOutputEnable(pinNum);
 
-    //Step 2
-    __uint8_t syncPeriClk = 1;
-    __uint8_t syncBusClk = 1;
-    __uint8_t useOpenDrainOutput = 1;
-    __uint8_t interruptType = 0;
-    __uint8_t pinWakeupEnable = 0;
-    __uint8_t cpuInterruptEnable = 0;
-    __uint8_t nonMaskableInterruptEnable = 0;
+//     //Step 2
+//     __uint8_t syncPeriClk = 1;
+//     __uint8_t syncBusClk = 1;
+//     __uint8_t useOpenDrainOutput = 1;
+//     __uint8_t interruptType = 0;
+//     __uint8_t pinWakeupEnable = 0;
+//     __uint8_t cpuInterruptEnable = 0;
+//     __uint8_t nonMaskableInterruptEnable = 0;
 
-    gpioPinSettings(pinNum,
-                        syncPeriClk,
-                        syncBusClk,
-                        useOpenDrainOutput,
-                        interruptType,
-                        pinWakeupEnable,
-                        cpuInterruptEnable,
-                        nonMaskableInterruptEnable);
+//     gpioPinSettings(pinNum,
+//                         syncPeriClk,
+//                         syncBusClk,
+//                         useOpenDrainOutput,
+//                         interruptType,
+//                         pinWakeupEnable,
+//                         cpuInterruptEnable,
+//                         nonMaskableInterruptEnable);
 
-    //Setp 3
-    __uint8_t pullDownEnable = 1;
-    __uint8_t pullUpEnable = 0;
-    __uint8_t inputEnable = 0;
-    __uint8_t driveStrength = 1;
-    __uint8_t mcuSel = 1;
-    __uint8_t filterEnable = 1;
-    gpioIoMuxCfg(pinNum,
-                    pullDownEnable,
-                    pullUpEnable,
-                    inputEnable,
-                    driveStrength,
-                    mcuSel,
-                    filterEnable);
-    return;
-}
+//     //Setp 3
+//     __uint8_t pullDownEnable = 1;
+//     __uint8_t pullUpEnable = 0;
+//     __uint8_t inputEnable = 0;
+//     __uint8_t driveStrength = 1;
+//     __uint8_t mcuSel = 1;
+//     __uint8_t filterEnable = 1;
+//     gpioIoMuxCfg(pinNum,
+//                     pullDownEnable,
+//                     pullUpEnable,
+//                     inputEnable,
+//                     driveStrength,
+//                     mcuSel,
+//                     filterEnable);
+//     return;
+// }
 
 void gpioSetupSDA()
 {

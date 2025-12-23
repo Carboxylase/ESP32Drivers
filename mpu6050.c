@@ -6,69 +6,63 @@
 void init6050Module(mpu6050Controller *mpu6050Ctrl)
 {
     //---Setup for SDA---//
-
-    // configure GPIO settings for sda (gpioPinSettings)
-    __uint8_t syncPeriClk = 1;
-    __uint8_t syncBusClk = 1;
-    __uint8_t useOpenDrainOutput = 1;
-    __uint8_t interruptType = 0;
-    __uint8_t pinWakeupEnable = 0;
-    __uint8_t cpuInterruptEnable = 0;
-    __uint8_t nonMaskInterruptEnable = 0;
+    // NOTE: I just applied the same settings of the SCL to the SDA, maybe check over this later
+    gpioPinConfig_t sdaGpioPinConfig = {.phase2SyncGpioInputWithApb = NO_SYNC,
+                                        .useOpenDrainOutput = FALSE,
+                                        .phase1SyncGpioInputWithApb = NO_SYNC,
+                                        .gpioInterruptType = DISABLED,
+                                        .gpioWakeupCpuEnable = FALSE,
+                                        .gpioCpuInterruptEnabe = FALSE,
+                                        .gpioCpuNonMaskInterruptEnable = FALSE};
 
     gpioPinSettings(mpu6050Ctrl->sdaPinNum,
-                    syncPeriClk,
-                    syncBusClk,
-                    useOpenDrainOutput,
-                    interruptType,
-                    pinWakeupEnable,
-                    cpuInterruptEnable,
-                    nonMaskInterruptEnable);
+                        sdaGpioPinConfig);
 
     // connect the GPIO (sda) pin to the I2C peripheral (gpioIoMuxCfg)
     
     //---Setup for SCL---//
 
     // set scl GPIO pin to be output, since we scl always comes from master (gpioSetOutputPin)
-    __uint32_t functionNum = I2CEXT0_SCL;
-    __uint8_t invertOutput = 0;
-    __uint8_t usePeriOutputEnable = 1;
-    __uint8_t invertOutputEnable = 0;
+
+    gpioOutputConfig_t sclGpioOutputConfig = {.functionNum = I2CEXT0_SCL,
+                                                .invertOutput = FALSE,
+                                                .useGpioOutputEnable = TRUE,
+                                                .invertOutputEnable = FALSE};
 
     gpioSetOutputPin(mpu6050Ctrl->sclPinNum,
-                        functionNum,
-                        invertOutput,
-                        usePeriOutputEnable,
-                        invertOutputEnable);
+                        sclGpioOutputConfig);
 
     // enable output for the scl GPIO pin
     gpioOutputEnable(mpu6050Ctrl->sclPinNum);
 
     // configure GPIO settings for scl (gpioPinSettings)
+    gpioPinConfig_t sclGpioPinConfig = {.phase2SyncGpioInputWithApb = NO_SYNC,
+                                        .useOpenDrainOutput = FALSE,
+                                        .phase1SyncGpioInputWithApb = NO_SYNC,
+                                        .gpioInterruptType = DISABLED,
+                                        .gpioWakeupCpuEnable = FALSE,
+                                        .gpioCpuInterruptEnabe = FALSE,
+                                        .gpioCpuNonMaskInterruptEnable = FALSE};
+
     gpioPinSettings(mpu6050Ctrl->sclPinNum,
-                    syncPeriClk,
-                    syncBusClk,
-                    useOpenDrainOutput,
-                    interruptType,
-                    pinWakeupEnable,
-                    cpuInterruptEnable,
-                    nonMaskInterruptEnable);
+                        sclGpioPinConfig);
 
     // enable output via GPIO matrix (gpioIoMuxCfg)
-    __uint8_t pullDownEnableScl = 0;
-    __uint8_t pullUpEnableScl = 0;
-    __uint8_t inputEnableScl = 0;
-    __uint8_t driveStrengthScl = 1;
-    __uint8_t mcuSelScl = 1;
-    __uint8_t filterEnableScl = 1;
-    
+    ioMuxConfig_t sclIoMuxConfig = {.sleepOutputEnable = TRUE,
+                                    .sleepModeEnable = FALSE,
+                                    .sleepWeakPullDownEnable = FALSE,
+                                    .sleepWeakPullUpEnable = FALSE,
+                                    .sleepInputEnable = FALSE,
+                                    .sleepGpioDriveStrength = 2,
+                                    .weakPullDownEnable = FALSE,
+                                    .weakPullUpEnable = FALSE,
+                                    .inputEnable = FALSE,
+                                    .gpioDriveStrength = 2,
+                                    .mcuSel = 1,
+                                    .inputFilterEnable = FALSE};
+
     gpioIoMuxCfg(mpu6050Ctrl->sclPinNum,
-                    pullDownEnableScl,
-                    pullUpEnableScl,
-                    inputEnableScl,
-                    driveStrengthScl,
-                    mcuSelScl,
-                    filterEnableScl);
+                    sclIoMuxConfig);
 
     // enable GPIO clk (gpioClkEnable)
     gpioClkEnble();
@@ -127,50 +121,43 @@ void mpu6050Write(mpu6050Controller *mpu6050Ctrl,
                     __uint8_t numBytes)
 {
     // set     i2c->I2C_CTR_REG |= 1 << 5;the GPIO to be Output (gpioSetOutputPin)
-    __uint32_t functionNum = I2CEXT0_SDA;
-    __uint8_t invertOutput = 0;
-    __uint8_t usePeriOutputEnable = 1;
-    __uint8_t invertOutputEnable = 0;
-    gpioSetOutputPin(mpu6050Ctrl->sdaPinNum,
-                        functionNum,
-                        invertOutput,
-                        usePeriOutputEnable,
-                        invertOutputEnable);
+    // make the i2c controller decide if it is
+    gpioOutputConfig_t sdaGpioOutputConfig = {.functionNum = I2CEXT0_SDA,
+                                                .invertOutput = FALSE,
+                                                .useGpioOutputEnable = FALSE,
+                                                .invertOutputEnable = FALSE};
+
+    gpioSetOutputPin(mpu6050Ctrl->sdaPinNum, sdaGpioOutputConfig);
 
     // enable output (gpioOutputEnable)
     gpioOutputEnable(mpu6050Ctrl->sdaPinNum);
 
     // gpioPinSetting
-    __uint8_t syncPeriClk = 1;
-    __uint8_t syncBusClk = 1;
-    __uint8_t useOpenDrainOutput = 1;
-    __uint8_t interruptType = 0;
-    __uint8_t pinWakeupEnable = 0;
-    __uint8_t cpuInterruptEnable = 0;
-    __uint8_t nonMaskInterruptEnable = 0;
-    gpioPinSettings(mpu6050Ctrl->sdaPinNum,
-                        syncPeriClk,
-                        syncBusClk,
-                        useOpenDrainOutput,
-                        interruptType,
-                        pinWakeupEnable,
-                        cpuInterruptEnable,
-                        nonMaskInterruptEnable);
+    gpioPinConfig_t sdaGpioPinConfig = {.phase2SyncGpioInputWithApb = NO_SYNC,
+                                        .useOpenDrainOutput = TRUE,
+                                        .phase1SyncGpioInputWithApb = NO_SYNC,
+                                        .gpioInterruptType = DISABLED,
+                                        .gpioWakeupCpuEnable = FALSE,
+                                        .gpioCpuInterruptEnabe = FALSE,
+                                        .gpioCpuNonMaskInterruptEnable = FALSE};
+
+    gpioPinSettings(mpu6050Ctrl->sdaPinNum, sdaGpioPinConfig);
 
     // gpioIoMuxCfg
-    __uint8_t pullDownEnable = 0;
-    __uint8_t pullUpEnable = 0;
-    __uint8_t inputEnable = 0;
-    __uint8_t driveStrength = 0;
-    __uint8_t mcuSel = 1;
-    __uint8_t filterEnable = 1;
-    gpioIoMuxCfg(mpu6050Ctrl->sdaPinNum,
-                    pullDownEnable,
-                    pullUpEnable,
-                    inputEnable,
-                    driveStrength,
-                    mcuSel,
-                    filterEnable);
+    ioMuxConfig_t sdaIoMuxConfig = {.sleepOutputEnable = TRUE,
+                                    .sleepModeEnable = FALSE,
+                                    .sleepWeakPullDownEnable = FALSE,
+                                    .sleepWeakPullUpEnable = FALSE,
+                                    .sleepInputEnable = TRUE,
+                                    .sleepGpioDriveStrength = 2,
+                                    .weakPullDownEnable = FALSE,
+                                    .weakPullUpEnable = FALSE,
+                                    .inputEnable = FALSE,
+                                    .gpioDriveStrength = 2,
+                                    .mcuSel = GPIO_MATRIX,
+                                    .inputFilterEnable = FALSE};
+
+    gpioIoMuxCfg(mpu6050Ctrl->sdaPinNum, sdaIoMuxConfig);
 
     // write to tx buffer
     writeTxRAM(mpu6050Ctrl->i2c,numBytes,buffer);

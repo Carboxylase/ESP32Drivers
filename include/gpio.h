@@ -1,7 +1,7 @@
 #ifndef GPIO_H
 #define GPIO_H
 
-#include "commonDataTypes.h"
+#include "utility.h"
 #include <stdio.h>
 
 // GPIO Matrix Function Values
@@ -67,14 +67,6 @@ typedef enum
     DIRECT_PERIPHERAL
 }ioMuxMcuSel;
 
-typedef struct 
-{
-    __uint8_t functionNum;
-    bool_t invertOutput;
-    bool_t useGpioOutputEnable;
-    bool_t invertOutputEnable;
-}gpioOutputConfig_t;
-
 typedef struct
 {
     gpioApbSyncType phase2SyncGpioInputWithApb;
@@ -85,6 +77,14 @@ typedef struct
     bool_t gpioCpuInterruptEnabe;
     bool_t gpioCpuNonMaskInterruptEnable;
 }gpioPinConfig_t;
+
+typedef struct 
+{
+    __uint8_t functionNum;
+    bool_t invertOutput;
+    bool_t useGpioOutputEnable;
+    bool_t invertOutputEnable;
+}gpioOutputConfig_t;
 
 typedef struct
 {
@@ -102,6 +102,8 @@ typedef struct
     bool_t inputFilterEnable;
 }ioMuxConfig_t;
 
+void gpioPinSettings(__uint32_t pinNum,
+                        gpioPinConfig_t gpioPinConfig);
 
 void gpioSetInputPin(__uint32_t pinNum,
                         __uint32_t functionNum,
@@ -110,10 +112,6 @@ void gpioSetInputPin(__uint32_t pinNum,
 
 void gpioSetOutputPin(__uint32_t pinNum,
                         gpioOutputConfig_t gpioOutputConfig);
-
-void gpioPinSettings(__uint32_t pinNum,
-                        gpioPinConfig_t gpioPinConfig);
-
 
 void gpioIoMuxCfg(__uint32_t pinNum,
                     ioMuxConfig_t ioMuxConfig);
